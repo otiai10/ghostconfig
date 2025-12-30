@@ -17,6 +17,7 @@ func main() {
 	tuiMode := flag.Bool("tui", false, "Use TUI mode (terminal interface)")
 	guiMode := flag.Bool("gui", false, "Use GUI mode (web browser interface)")
 	port := flag.Int("port", 9999, "Port for GUI server")
+	configFile := flag.String("file", "", "Path to config file (default: ~/.config/ghostty/config)")
 	flag.Parse()
 
 	// Initialize i18n
@@ -36,7 +37,7 @@ func main() {
 	}
 
 	// Load current config
-	cfg, err := config.Load("")
+	cfg, err := config.Load(*configFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, i18n.T("error.load_config")+"\n", err)
 		os.Exit(1)

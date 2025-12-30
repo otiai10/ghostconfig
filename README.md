@@ -22,6 +22,9 @@ ghostconfig
 
 # TUI mode (terminal interface)
 ghostconfig -tui
+
+# Custom config file
+ghostconfig -file=/path/to/custom/config
 ```
 
 ## Features
