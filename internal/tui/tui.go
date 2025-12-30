@@ -17,6 +17,8 @@ const (
 	modeList mode = iota
 	modeEdit
 	modeSearch
+	modeColorPicker
+	modeFontPicker
 )
 
 // ListItem represents either a section header or an option
@@ -35,8 +37,18 @@ type Model struct {
 	mode        mode
 	textInput   textinput.Model
 	searchQuery string
-	items       []ListItem // flattened list of visible items
+	items       []ListItem
 	message     string
+
+	// For color picker
+	colorCursor int
+	customColor bool
+
+	// For font picker
+	fonts       []string
+	fontCursor  int
+	fontOffset  int
+	fontFilter  string
 }
 
 var (
@@ -82,6 +94,18 @@ var (
 
 	countStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240"))
+
+	colorSwatchStyle = lipgloss.NewStyle().
+				Width(4).
+				Height(1)
+
+	pickerSelectedStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("229")).
+				Background(lipgloss.Color("57"))
+
+	pickerItemStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252"))
 )
 
 func New(options []schema.Option, cfg *config.Config) Model {
@@ -108,7 +132,6 @@ func (m *Model) rebuildItems() {
 	query := strings.ToLower(m.searchQuery)
 
 	for si, section := range m.sections {
-		// Filter options if searching
 		var matchingOpts []int
 		for oi, opt := range section.Options {
 			if query == "" ||
@@ -118,18 +141,15 @@ func (m *Model) rebuildItems() {
 			}
 		}
 
-		// Skip section if no matching options
 		if len(matchingOpts) == 0 && query != "" {
 			continue
 		}
 
-		// Add section header
 		m.items = append(m.items, ListItem{
 			IsSection:    true,
 			SectionIndex: si,
 		})
 
-		// Add options if expanded (or searching)
 		if section.Expanded || query != "" {
 			for _, oi := range matchingOpts {
 				m.items = append(m.items, ListItem{
@@ -156,6 +176,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateEdit(msg)
 		case modeSearch:
 			return m.updateSearch(msg)
+		case modeColorPicker:
+			return m.updateColorPicker(msg)
+		case modeFontPicker:
+			return m.updateFontPicker(msg)
 		}
 
 	case tea.WindowSizeMsg:
@@ -193,29 +217,65 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.items) > 0 && m.cursor < len(m.items) {
 			item := m.items[m.cursor]
 			if item.IsSection {
-				// Toggle section expansion
 				m.sections[item.SectionIndex].Expanded = !m.sections[item.SectionIndex].Expanded
 				m.rebuildItems()
-				// Keep cursor in bounds
 				if m.cursor >= len(m.items) {
 					m.cursor = len(m.items) - 1
 				}
 			} else {
-				// Edit option
-				m.mode = modeEdit
 				opt := m.sections[item.SectionIndex].Options[item.OptionIndex]
-				currentVal := m.config.Get(opt.Key)
-				if currentVal == "" {
-					currentVal = opt.DefaultValue
+				optType := schema.GetOptionType(opt.Key)
+
+				switch optType {
+				case schema.TypeColor:
+					m.mode = modeColorPicker
+					m.colorCursor = 0
+					m.customColor = false
+					currentVal := m.config.Get(opt.Key)
+					if currentVal == "" {
+						currentVal = opt.DefaultValue
+					}
+					m.textInput.SetValue(currentVal)
+					return m, nil
+
+				case schema.TypeFont:
+					fonts, err := schema.ListFonts()
+					if err != nil {
+						m.message = fmt.Sprintf("Error loading fonts: %v", err)
+						return m, nil
+					}
+					m.fonts = fonts
+					m.mode = modeFontPicker
+					m.fontCursor = 0
+					m.fontOffset = 0
+					m.fontFilter = ""
+					// Find current font in list
+					currentVal := m.config.Get(opt.Key)
+					for i, f := range fonts {
+						if f == currentVal {
+							m.fontCursor = i
+							if m.fontCursor >= m.height-2 {
+								m.fontOffset = m.fontCursor - m.height/2
+							}
+							break
+						}
+					}
+					return m, nil
+
+				default:
+					m.mode = modeEdit
+					currentVal := m.config.Get(opt.Key)
+					if currentVal == "" {
+						currentVal = opt.DefaultValue
+					}
+					m.textInput.SetValue(currentVal)
+					m.textInput.Focus()
+					return m, textinput.Blink
 				}
-				m.textInput.SetValue(currentVal)
-				m.textInput.Focus()
-				return m, textinput.Blink
 			}
 		}
 
 	case "tab":
-		// Expand/collapse all
 		allExpanded := true
 		for _, s := range m.sections {
 			if !s.Expanded {
@@ -297,11 +357,150 @@ func (m Model) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m Model) updateColorPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	totalItems := len(schema.CommonColors) + 1 // +1 for custom
+
+	switch msg.String() {
+	case "esc":
+		m.mode = modeList
+		return m, nil
+
+	case "up", "k":
+		if m.colorCursor > 0 {
+			m.colorCursor--
+			m.customColor = false
+		}
+
+	case "down", "j":
+		if m.colorCursor < totalItems-1 {
+			m.colorCursor++
+		}
+		if m.colorCursor == totalItems-1 {
+			m.customColor = true
+			m.textInput.Focus()
+			return m, textinput.Blink
+		}
+
+	case "enter":
+		item := m.items[m.cursor]
+		opt := m.sections[item.SectionIndex].Options[item.OptionIndex]
+
+		var newValue string
+		if m.customColor {
+			newValue = m.textInput.Value()
+		} else {
+			newValue = schema.CommonColors[m.colorCursor].Value
+		}
+
+		m.config.Set(opt.Key, newValue)
+		if err := m.config.Save(); err != nil {
+			m.message = fmt.Sprintf("Error: %v", err)
+		} else {
+			m.message = fmt.Sprintf("Saved: %s = %s", opt.Key, newValue)
+		}
+		m.mode = modeList
+		m.textInput.Blur()
+		return m, nil
+	}
+
+	if m.customColor {
+		var cmd tea.Cmd
+		m.textInput, cmd = m.textInput.Update(msg)
+		return m, cmd
+	}
+
+	return m, nil
+}
+
+func (m Model) updateFontPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	filteredFonts := m.getFilteredFonts()
+	maxVisible := m.height - 4
+
+	switch msg.String() {
+	case "esc":
+		m.mode = modeList
+		m.fontFilter = ""
+		return m, nil
+
+	case "up", "k":
+		if m.fontCursor > 0 {
+			m.fontCursor--
+			if m.fontCursor < m.fontOffset {
+				m.fontOffset = m.fontCursor
+			}
+		}
+
+	case "down", "j":
+		if m.fontCursor < len(filteredFonts)-1 {
+			m.fontCursor++
+			if m.fontCursor >= m.fontOffset+maxVisible {
+				m.fontOffset = m.fontCursor - maxVisible + 1
+			}
+		}
+
+	case "enter":
+		if len(filteredFonts) > 0 && m.fontCursor < len(filteredFonts) {
+			item := m.items[m.cursor]
+			opt := m.sections[item.SectionIndex].Options[item.OptionIndex]
+			newValue := filteredFonts[m.fontCursor]
+
+			m.config.Set(opt.Key, newValue)
+			if err := m.config.Save(); err != nil {
+				m.message = fmt.Sprintf("Error: %v", err)
+			} else {
+				m.message = fmt.Sprintf("Saved: %s = %s", opt.Key, newValue)
+			}
+			m.mode = modeList
+			m.fontFilter = ""
+			return m, nil
+		}
+
+	case "backspace":
+		if len(m.fontFilter) > 0 {
+			m.fontFilter = m.fontFilter[:len(m.fontFilter)-1]
+			m.fontCursor = 0
+			m.fontOffset = 0
+		}
+
+	default:
+		// Add character to filter
+		if len(msg.String()) == 1 {
+			m.fontFilter += msg.String()
+			m.fontCursor = 0
+			m.fontOffset = 0
+		}
+	}
+
+	return m, nil
+}
+
+func (m Model) getFilteredFonts() []string {
+	if m.fontFilter == "" {
+		return m.fonts
+	}
+
+	filter := strings.ToLower(m.fontFilter)
+	var filtered []string
+	for _, f := range m.fonts {
+		if strings.Contains(strings.ToLower(f), filter) {
+			filtered = append(filtered, f)
+		}
+	}
+	return filtered
+}
+
 func (m Model) View() string {
 	var b strings.Builder
 
 	b.WriteString(titleStyle.Render("Ghostty Config Editor"))
 	b.WriteString("\n")
+
+	switch m.mode {
+	case modeColorPicker:
+		return m.viewColorPicker()
+	case modeFontPicker:
+		return m.viewFontPicker()
+	}
 
 	if m.mode == modeSearch {
 		b.WriteString("Search: ")
@@ -340,19 +539,37 @@ func (m Model) View() string {
 		} else {
 			opt := m.sections[item.SectionIndex].Options[item.OptionIndex]
 			currentVal := m.config.Get(opt.Key)
+			optType := schema.GetOptionType(opt.Key)
 
 			var line string
+			val := currentVal
+			if val == "" {
+				val = opt.DefaultValue
+			}
+
+			// Add color swatch for color options
+			var colorSwatch string
+			if optType == schema.TypeColor && val != "" {
+				colorSwatch = colorSwatchStyle.Background(lipgloss.Color(val)).Render("  ") + " "
+			}
+
 			if isSelected {
-				val := currentVal
-				if val == "" {
-					val = opt.DefaultValue + " (default)"
+				displayVal := val
+				if currentVal == "" {
+					displayVal = val + " (default)"
 				}
-				line = selectedStyle.Render(fmt.Sprintf("  > %s = %s", opt.Key, val))
+				line = selectedStyle.Render(fmt.Sprintf("  > %s = %s", opt.Key, displayVal))
+				if colorSwatch != "" {
+					line = colorSwatch + line
+				}
 			} else {
 				if currentVal != "" {
 					line = fmt.Sprintf("    %s = %s", keyStyle.Render(opt.Key), valueStyle.Render(currentVal))
 				} else {
-					line = fmt.Sprintf("    %s = %s", keyStyle.Render(opt.Key), defaultStyle.Render(opt.DefaultValue+" (default)"))
+					line = fmt.Sprintf("    %s = %s", keyStyle.Render(opt.Key), defaultStyle.Render(val+" (default)"))
+				}
+				if colorSwatch != "" {
+					line = colorSwatch + line
 				}
 			}
 			b.WriteString(line)
@@ -396,6 +613,106 @@ func (m Model) View() string {
 		help = "enter: apply | esc: cancel"
 	}
 	b.WriteString(helpStyle.Render("\n" + help))
+
+	return b.String()
+}
+
+func (m Model) viewColorPicker() string {
+	var b strings.Builder
+
+	item := m.items[m.cursor]
+	opt := m.sections[item.SectionIndex].Options[item.OptionIndex]
+
+	b.WriteString(titleStyle.Render(fmt.Sprintf("Select Color: %s", opt.Key)))
+	b.WriteString("\n\n")
+
+	// Current value preview
+	currentVal := m.config.Get(opt.Key)
+	if currentVal == "" {
+		currentVal = opt.DefaultValue
+	}
+	if currentVal != "" {
+		preview := colorSwatchStyle.Background(lipgloss.Color(currentVal)).Render("    ")
+		b.WriteString(fmt.Sprintf("Current: %s %s\n\n", preview, currentVal))
+	}
+
+	// Common colors
+	for i, c := range schema.CommonColors {
+		swatch := colorSwatchStyle.Background(lipgloss.Color(c.Value)).Render("  ")
+		line := fmt.Sprintf("%s %s (%s)", swatch, c.Name, c.Value)
+
+		if i == m.colorCursor && !m.customColor {
+			b.WriteString(pickerSelectedStyle.Render("> " + line))
+		} else {
+			b.WriteString("  " + pickerItemStyle.Render(line))
+		}
+		b.WriteString("\n")
+	}
+
+	// Custom color option
+	b.WriteString("\n")
+	if m.customColor {
+		b.WriteString(pickerSelectedStyle.Render("> Custom: "))
+		b.WriteString(m.textInput.View())
+	} else {
+		if m.colorCursor == len(schema.CommonColors) {
+			b.WriteString(pickerSelectedStyle.Render("> Custom color..."))
+		} else {
+			b.WriteString("  " + pickerItemStyle.Render("Custom color..."))
+		}
+	}
+	b.WriteString("\n")
+
+	b.WriteString(helpStyle.Render("\nj/k: move | enter: select | esc: cancel"))
+
+	return b.String()
+}
+
+func (m Model) viewFontPicker() string {
+	var b strings.Builder
+
+	item := m.items[m.cursor]
+	opt := m.sections[item.SectionIndex].Options[item.OptionIndex]
+
+	b.WriteString(titleStyle.Render(fmt.Sprintf("Select Font: %s", opt.Key)))
+	b.WriteString("\n")
+
+	// Current value
+	currentVal := m.config.Get(opt.Key)
+	if currentVal != "" {
+		b.WriteString(fmt.Sprintf("Current: %s\n", valueStyle.Render(currentVal)))
+	}
+
+	// Filter display
+	if m.fontFilter != "" {
+		b.WriteString(fmt.Sprintf("Filter: %s\n", m.fontFilter))
+	}
+	b.WriteString("\n")
+
+	filteredFonts := m.getFilteredFonts()
+	maxVisible := m.height - 4
+
+	end := m.fontOffset + maxVisible
+	if end > len(filteredFonts) {
+		end = len(filteredFonts)
+	}
+
+	for i := m.fontOffset; i < end; i++ {
+		font := filteredFonts[i]
+		if i == m.fontCursor {
+			// Show font name with preview using the font itself (if terminal supports it)
+			b.WriteString(pickerSelectedStyle.Render(fmt.Sprintf("> %s", font)))
+		} else {
+			b.WriteString(fmt.Sprintf("  %s", pickerItemStyle.Render(font)))
+		}
+		b.WriteString("\n")
+	}
+
+	if len(filteredFonts) == 0 {
+		b.WriteString(defaultStyle.Render("  No fonts match filter\n"))
+	}
+
+	b.WriteString(helpStyle.Render(fmt.Sprintf("\nj/k: move | enter: select | type to filter | esc: cancel (%d fonts)", len(filteredFonts))))
 
 	return b.String()
 }
