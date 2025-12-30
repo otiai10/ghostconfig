@@ -91,15 +91,18 @@ function switchLanguage(lang) {
 // Apply i18n to static elements
 function applyI18n() {
     document.title = t('app.title');
-    document.querySelector('h1').textContent = t('app.title');
-    document.getElementById('search').placeholder = t('gui.search_placeholder');
-    document.getElementById('exit-btn').textContent = t('gui.exit');
-    document.getElementById('modal-cancel').textContent = t('gui.cancel');
-    document.getElementById('modal-save').textContent = t('gui.save');
+    const h1 = document.querySelector('h1');
+    if (h1) h1.textContent = t('app.title');
+    const search = document.getElementById('search');
+    if (search) search.placeholder = t('gui.search_placeholder');
+    const exitBtn = document.getElementById('exit-btn');
+    if (exitBtn) exitBtn.textContent = t('gui.exit');
+    const modalCancel = document.getElementById('modal-cancel');
+    if (modalCancel) modalCancel.textContent = t('gui.cancel');
+    const modalSave = document.getElementById('modal-save');
+    if (modalSave) modalSave.textContent = t('gui.save');
     const loading = document.querySelector('.loading');
-    if (loading) {
-        loading.textContent = t('gui.loading');
-    }
+    if (loading) loading.textContent = t('gui.loading');
 }
 
 // API calls
@@ -167,14 +170,8 @@ function renderOptions() {
     }
 
     let html = '';
-    let currentSection = '';
 
     for (const opt of filtered) {
-        if (state.currentSection === 'all' && opt.section !== currentSection) {
-            currentSection = opt.section;
-            html += `<div class="section-header">${currentSection}</div>`;
-        }
-
         const displayValue = opt.currentValue || opt.defaultValue || '(empty)';
         const isModified = opt.currentValue && opt.currentValue !== opt.defaultValue;
         const badge = isModified
@@ -392,10 +389,13 @@ async function saveCurrentEdit() {
 // Event listeners
 function setupEventListeners() {
     // Search
-    document.getElementById('search').addEventListener('input', (e) => {
-        state.searchQuery = e.target.value;
-        renderOptions();
-    });
+    const search = document.getElementById('search');
+    if (search) {
+        search.addEventListener('input', (e) => {
+            state.searchQuery = e.target.value;
+            renderOptions();
+        });
+    }
 
     // Section navigation
     document.getElementById('sections').addEventListener('click', (e) => {
@@ -454,8 +454,11 @@ function setupEventListeners() {
             saveCurrentEdit();
         }
         if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
-            e.preventDefault();
-            document.getElementById('search').focus();
+            const search = document.getElementById('search');
+            if (search) {
+                e.preventDefault();
+                search.focus();
+            }
         }
     });
 }

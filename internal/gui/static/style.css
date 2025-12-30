@@ -36,7 +36,7 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.5rem;
+    padding: 0.25rem 1.5rem;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border);
 }
@@ -130,9 +130,47 @@ nav#sections {
     font-weight: 500;
 }
 
-main#options {
+main {
     flex: 1;
-    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#search-container {
+    padding: 1rem 1.5rem;
+    background: var(--bg-primary);
+}
+
+#search-container input {
+    width: 100%;
+    padding: 0.2rem 0;
+    border: none;
+    border-bottom: 2px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-bottom-color 0.15s;
+}
+
+#search-container input::placeholder {
+    color: var(--text-muted);
+}
+
+#search-container input:focus {
+    border-bottom-color: var(--accent);
+}
+
+#search-container input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+div#options {
+    flex: 1;
+    padding: 1rem 1.5rem;
     overflow-y: auto;
 }
 

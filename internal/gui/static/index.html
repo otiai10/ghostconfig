@@ -11,7 +11,6 @@
         <header>
             <h1>Ghostty Config Editor</h1>
             <div class="header-actions">
-                <input type="search" id="search" placeholder="Search options..." autocomplete="off">
                 <div class="lang-switcher" id="lang-switcher"></div>
                 <button id="exit-btn" class="btn-exit">Exit</button>
             </div>
@@ -22,8 +21,13 @@
                 <button class="section-btn active" data-section="all">All</button>
             </nav>
 
-            <main id="options">
-                <div class="loading">Loading options...</div>
+            <main>
+                <div id="search-container">
+                    <input type="search" id="search" placeholder="Search options..." autocomplete="off">
+                </div>
+                <div id="options">
+                    <div class="loading">Loading options...</div>
+                </div>
             </main>
         </div>
 
