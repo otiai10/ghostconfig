@@ -1,10 +1,5 @@
 package i18n
 
-import (
-	"os"
-	"strings"
-)
-
 // Language codes
 const (
 	LangEN = "en"
@@ -13,21 +8,10 @@ const (
 
 var currentLang = LangEN
 
-// Init initializes the language from environment variables
+// Init initializes the i18n package. Default language is English.
+// Language can be changed via GUI language switcher.
 func Init() {
-	lang := os.Getenv("LANG")
-	if lang == "" {
-		lang = os.Getenv("LC_ALL")
-	}
-	if lang == "" {
-		lang = os.Getenv("LC_MESSAGES")
-	}
-
-	if strings.HasPrefix(lang, "ja") {
-		currentLang = LangJA
-	} else {
-		currentLang = LangEN
-	}
+	// Default is English (currentLang = LangEN is already set)
 }
 
 // SetLang sets the current language
