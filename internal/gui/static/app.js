@@ -450,15 +450,13 @@ function setupEventListeners() {
 
     // Exit button
     document.getElementById('exit-btn').addEventListener('click', async () => {
-        if (confirm(t('gui.exit_confirm'))) {
-            try {
-                await fetch('/api/exit', { method: 'POST' });
-                window.close();
-                // Fallback if window.close() is blocked by browser
-                document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#a6adc8;">${t('gui.server_stopped')}</div>`;
-            } catch (error) {
-                showStatus(t('gui.error.exit'), true);
-            }
+        try {
+            await fetch('/api/exit', { method: 'POST' });
+            window.close();
+            // Fallback if window.close() is blocked by browser
+            document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#a6adc8;">${t('gui.server_stopped')}</div>`;
+        } catch (error) {
+            showStatus(t('gui.error.exit'), true);
         }
     });
 

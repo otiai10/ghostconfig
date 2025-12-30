@@ -61,7 +61,6 @@ var messagesEN = map[string]string{
 	"gui.custom_label":       "Custom:",
 	"gui.modified":           "modified",
 	"gui.default":            "default",
-	"gui.exit_confirm":       "Exit Ghostty Config Editor?",
 	"gui.server_stopped":     "Server stopped. You can close this tab.",
 
 	// GUI errors
@@ -287,7 +286,6 @@ var messagesJA = map[string]string{
 	"gui.custom_label":       "カスタム:",
 	"gui.modified":           "変更済",
 	"gui.default":            "デフォルト",
-	"gui.exit_confirm":       "Ghostty Config Editor を終了しますか？",
 	"gui.server_stopped":     "サーバーが停止しました。このタブを閉じてください。",
 
 	// GUI errors
