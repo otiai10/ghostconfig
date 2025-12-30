@@ -12,6 +12,8 @@ A TUI/GUI editor for [Ghostty](https://ghostty.org/) terminal configuration.
 
 ```sh
 go install github.com/otiai10/ghostconfig@latest
+# then
+ghostconfig -h
 ```
 
 ## Usage
