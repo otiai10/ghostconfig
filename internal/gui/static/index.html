@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghostty Config Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Ghostty Config Editor</h1>
+            <div class="header-actions">
+                <input type="search" id="search" placeholder="Search options..." autocomplete="off">
+                <button id="exit-btn" class="btn-exit">Exit</button>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <nav id="sections">
+                <button class="section-btn active" data-section="all">All</button>
+            </nav>
+
+            <main id="options">
+                <div class="loading">Loading options...</div>
+            </main>
+        </div>
+
+        <footer>
+            <div id="status"></div>
+        </footer>
+    </div>
+
+    <div id="modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <h2 id="modal-title"></h2>
+            <p id="modal-description"></p>
+            <div id="modal-input-container"></div>
+            <div class="modal-actions">
+                <button id="modal-cancel" class="btn-secondary">Cancel</button>
+                <button id="modal-save" class="btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
