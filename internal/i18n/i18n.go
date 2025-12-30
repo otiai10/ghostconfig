@@ -87,3 +87,14 @@ func GetAllMessages() map[string]map[string]string {
 func GetAvailableLanguages() []string {
 	return []string{LangEN, LangJA}
 }
+
+// TDesc returns translated description for an option key, with fallback to original
+func TDesc(optionKey, originalDesc string) string {
+	key := "desc." + optionKey
+	translated := T(key)
+	// If translation exists (not returning the key itself), use it
+	if translated != key {
+		return translated
+	}
+	return originalDesc
+}

@@ -157,6 +157,16 @@ function translateSection(key) {
     return t('category.' + key) || key;
 }
 
+// Translate option description (with fallback to original)
+function translateDescription(key, originalDesc) {
+    const translated = t('desc.' + key);
+    // If translation exists and is not the key itself, use it
+    if (translated && translated !== 'desc.' + key) {
+        return translated;
+    }
+    return originalDesc || '';
+}
+
 function renderSections() {
     const nav = document.getElementById('sections');
     const buttons = state.sections.map(section =>
@@ -189,6 +199,8 @@ function renderOptions() {
             valueHtml = `<span class="color-preview" style="background: ${colorVal}"></span> ${escapeHtml(displayValue)}`;
         }
 
+        const description = translateDescription(opt.key, opt.description);
+
         html += `
             <div class="option-card" data-key="${opt.key}">
                 <div class="option-header">
@@ -196,7 +208,7 @@ function renderOptions() {
                     ${badge}
                 </div>
                 <div class="option-value">${valueHtml}</div>
-                <div class="option-description">${escapeHtml(opt.description || '')}</div>
+                <div class="option-description">${escapeHtml(description)}</div>
             </div>
         `;
     }
@@ -243,7 +255,7 @@ function openEditor(option) {
     const container = document.getElementById('modal-input-container');
 
     title.textContent = option.key;
-    description.textContent = option.description || '';
+    description.textContent = translateDescription(option.key, option.description);
 
     const currentValue = option.currentValue || option.defaultValue || '';
 

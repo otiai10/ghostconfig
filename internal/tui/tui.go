@@ -584,7 +584,7 @@ func (m Model) View() string {
 		item := m.items[m.cursor]
 		if !item.IsSection {
 			opt := m.sections[item.SectionIndex].Options[item.OptionIndex]
-			desc := opt.Description
+			desc := i18n.TDesc(opt.Key, opt.Description)
 			if len(desc) > 200 {
 				desc = desc[:200] + "..."
 			}
