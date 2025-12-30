@@ -530,7 +530,8 @@ func (m Model) View() string {
 				icon = "▼"
 			}
 			count := countStyle.Render(fmt.Sprintf("(%d)", len(section.Options)))
-			line := fmt.Sprintf("%s %s %s", icon, section.Name, count)
+			sectionName := schema.CategoryName(section.Name)
+			line := fmt.Sprintf("%s %s %s", icon, sectionName, count)
 
 			if isSelected {
 				b.WriteString(sectionSelectedStyle.Render(line))

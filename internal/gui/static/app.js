@@ -152,10 +152,15 @@ async function saveConfig(key, value) {
 }
 
 // Rendering functions
+// Translate section name (key -> display name)
+function translateSection(key) {
+    return t('category.' + key) || key;
+}
+
 function renderSections() {
     const nav = document.getElementById('sections');
     const buttons = state.sections.map(section =>
-        `<button class="section-btn" data-section="${section.name}">${section.name}</button>`
+        `<button class="section-btn" data-section="${section.name}">${translateSection(section.name)}</button>`
     );
     nav.innerHTML = `<button class="section-btn active" data-section="all">${t('gui.all')}</button>` + buttons.join('');
 }

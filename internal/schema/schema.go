@@ -144,7 +144,7 @@ func GroupBySection(options []Option) []Section {
 	for _, key := range categoryOrder {
 		if opts, exists := sectionMap[key]; exists {
 			sections = append(sections, Section{
-				Name:     CategoryName(key),
+				Name:     key, // Return key, translate on client side
 				Options:  opts,
 				Expanded: false,
 			})
