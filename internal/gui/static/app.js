@@ -1,3 +1,22 @@
+// i18n state
+let i18nData = {
+    currentLang: 'en',
+    languages: ['en', 'ja'],
+    messages: {}
+};
+
+// Language display names
+const langNames = {
+    en: 'EN',
+    ja: 'JA'
+};
+
+// Translate function
+function t(key) {
+    const msgs = i18nData.messages[i18nData.currentLang] || {};
+    return msgs[key] || key;
+}
+
 // Application state
 const state = {
     sections: [],
@@ -12,36 +31,94 @@ const state = {
 async function init() {
     try {
         await Promise.all([
+            loadI18n(),
             loadOptions(),
             loadColors()
         ]);
+        renderLangSwitcher();
+        applyI18n();
         renderSections();
         renderOptions();
         setupEventListeners();
     } catch (error) {
-        console.error('Failed to initialize:', error);
+        console.error(t('gui.error.init'), error);
         document.getElementById('options').innerHTML =
-            '<div class="no-results">Failed to load options. Please refresh the page.</div>';
+            `<div class="no-results">${t('gui.error.load_options')}</div>`;
+    }
+}
+
+// Load i18n messages
+async function loadI18n() {
+    const response = await fetch('/api/i18n');
+    if (!response.ok) return;
+    const data = await response.json();
+    i18nData.languages = data.languages || ['en', 'ja'];
+    i18nData.messages = data.messages || {};
+
+    // Check localStorage for saved language preference
+    const savedLang = localStorage.getItem('ghostconfig-lang');
+    if (savedLang && i18nData.languages.includes(savedLang)) {
+        i18nData.currentLang = savedLang;
+    } else {
+        i18nData.currentLang = data.defaultLang || 'en';
+    }
+}
+
+// Render language switcher select
+function renderLangSwitcher() {
+    const container = document.getElementById('lang-switcher');
+    const options = i18nData.languages.map(lang => {
+        const selected = lang === i18nData.currentLang ? 'selected' : '';
+        return `<option value="${lang}" ${selected}>${langNames[lang] || lang.toUpperCase()}</option>`;
+    });
+    container.innerHTML = `<select id="lang-select">${options.join('')}</select>`;
+}
+
+// Switch language
+function switchLanguage(lang) {
+    if (!i18nData.languages.includes(lang)) return;
+
+    i18nData.currentLang = lang;
+    localStorage.setItem('ghostconfig-lang', lang);
+
+    // Update UI
+    renderLangSwitcher();
+    applyI18n();
+    renderSections();
+    renderOptions();
+}
+
+// Apply i18n to static elements
+function applyI18n() {
+    document.title = t('app.title');
+    document.querySelector('h1').textContent = t('app.title');
+    document.getElementById('search').placeholder = t('gui.search_placeholder');
+    document.getElementById('exit-btn').textContent = t('gui.exit');
+    document.getElementById('modal-cancel').textContent = t('gui.cancel');
+    document.getElementById('modal-save').textContent = t('gui.save');
+    const loading = document.querySelector('.loading');
+    if (loading) {
+        loading.textContent = t('gui.loading');
     }
 }
 
 // API calls
 async function loadOptions() {
     const response = await fetch('/api/options');
-    if (!response.ok) throw new Error('Failed to load options');
+    if (!response.ok) throw new Error(t('gui.error.load_options_api'));
     state.sections = await response.json();
 }
 
 async function loadColors() {
     const response = await fetch('/api/colors');
-    if (!response.ok) throw new Error('Failed to load colors');
+    if (!response.ok) throw new Error(t('gui.error.load_colors'));
     state.colors = await response.json();
 }
 
 async function loadFonts() {
     if (state.fonts.length > 0) return state.fonts;
     const response = await fetch('/api/fonts');
-    if (!response.ok) throw new Error('Failed to load fonts');
+    if (!response.ok) throw new Error(t('gui.error.load_fonts'));
     state.fonts = await response.json();
     return state.fonts;
 }
@@ -54,7 +131,7 @@ async function saveConfig(key, value) {
     });
 
     if (!response.ok) {
-        throw new Error('Failed to save config');
+        throw new Error(t('gui.error.save'));
     }
 
     // Update local state
@@ -67,7 +144,7 @@ async function saveConfig(key, value) {
         }
     }
 
-    showStatus(`Saved: ${key} = ${value}`);
+    showStatus(t('msg.saved').replace('%s', key).replace('%s', value));
     renderOptions();
 }
 
@@ -77,7 +154,7 @@ function renderSections() {
     const buttons = state.sections.map(section =>
         `<button class="section-btn" data-section="${section.name}">${section.name}</button>`
     );
-    nav.innerHTML = `<button class="section-btn active" data-section="all">All</button>` + buttons.join('');
+    nav.innerHTML = `<button class="section-btn active" data-section="all">${t('gui.all')}</button>` + buttons.join('');
 }
 
 function renderOptions() {
@@ -85,7 +162,7 @@ function renderOptions() {
     const filtered = filterOptions();
 
     if (filtered.length === 0) {
-        container.innerHTML = '<div class="no-results">No options found</div>';
+        container.innerHTML = `<div class="no-results">${t('gui.no_options')}</div>`;
         return;
     }
 
@@ -101,8 +178,8 @@ function renderOptions() {
         const displayValue = opt.currentValue || opt.defaultValue || '(empty)';
         const isModified = opt.currentValue && opt.currentValue !== opt.defaultValue;
         const badge = isModified
-            ? '<span class="modified-badge">modified</span>'
-            : (!opt.currentValue ? '<span class="default-badge">default</span>' : '');
+            ? `<span class="modified-badge">${t('gui.modified')}</span>`
+            : (!opt.currentValue ? `<span class="default-badge">${t('gui.default')}</span>` : '');
 
         let valueHtml = escapeHtml(displayValue);
         if (opt.type === 'color' && displayValue && displayValue !== '(empty)') {
@@ -211,7 +288,7 @@ function renderColorPicker(container, currentValue) {
 
     html += `
         <div class="custom-color">
-            <label>Custom:</label>
+            <label>${t('gui.custom_label')}</label>
             <input type="color" id="custom-color-picker" value="#${normalizedCurrent || 'ffffff'}">
             <input type="text" id="custom-color-hex" value="${normalizedCurrent}" placeholder="ffffff">
         </div>
@@ -244,12 +321,12 @@ function renderColorPicker(container, currentValue) {
 }
 
 async function renderFontPicker(container, currentValue) {
-    container.innerHTML = '<div class="loading">Loading fonts...</div>';
+    container.innerHTML = `<div class="loading">${t('gui.loading_fonts')}</div>`;
 
     try {
         const fonts = await loadFonts();
 
-        let html = `<input type="text" class="font-filter" id="font-filter" placeholder="Filter fonts..." value="">`;
+        let html = `<input type="text" class="font-filter" id="font-filter" placeholder="${t('gui.filter_fonts')}" value="">`;
         html += '<div class="font-list" id="font-list">';
 
         for (const font of fonts) {
@@ -281,7 +358,7 @@ async function renderFontPicker(container, currentValue) {
             }
         });
     } catch (error) {
-        container.innerHTML = '<div class="no-results">Failed to load fonts</div>';
+        container.innerHTML = `<div class="no-results">${t('gui.error.load_fonts')}</div>`;
     }
 }
 
@@ -308,7 +385,7 @@ async function saveCurrentEdit() {
         await saveConfig(option.key, value);
         closeModal();
     } catch (error) {
-        showStatus('Failed to save: ' + error.message, true);
+        showStatus(t('gui.error.save_prefix') + error.message, true);
     }
 }
 
@@ -347,16 +424,23 @@ function setupEventListeners() {
     document.getElementById('modal-save').addEventListener('click', saveCurrentEdit);
     document.querySelector('.modal-backdrop').addEventListener('click', closeModal);
 
+    // Language switcher
+    document.getElementById('lang-switcher').addEventListener('change', (e) => {
+        if (e.target.id === 'lang-select') {
+            switchLanguage(e.target.value);
+        }
+    });
+
     // Exit button
     document.getElementById('exit-btn').addEventListener('click', async () => {
-        if (confirm('Exit Ghostty Config Editor?')) {
+        if (confirm(t('gui.exit_confirm'))) {
             try {
                 await fetch('/api/exit', { method: 'POST' });
                 window.close();
                 // Fallback if window.close() is blocked by browser
-                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#a6adc8;">Server stopped. You can close this tab.</div>';
+                document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#a6adc8;">${t('gui.server_stopped')}</div>`;
             } catch (error) {
-                showStatus('Failed to exit', true);
+                showStatus(t('gui.error.exit'), true);
             }
         }
     });

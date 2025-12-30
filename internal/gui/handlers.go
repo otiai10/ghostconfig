@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/otiai10/ghostconfig/internal/i18n"
 	"github.com/otiai10/ghostconfig/internal/schema"
 )
 
@@ -26,7 +27,7 @@ type SectionResponse struct {
 // GET /api/options - Get all options grouped by section
 func (s *Server) handleGetOptions(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, i18n.T("gui.method_not_allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -96,14 +97,14 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 
 	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, i18n.T("gui.method_not_allowed"), http.StatusMethodNotAllowed)
 	}
 }
 
 // GET /api/fonts - Get available fonts
 func (s *Server) handleGetFonts(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, i18n.T("gui.method_not_allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -126,7 +127,7 @@ type ColorOption struct {
 // GET /api/colors - Get preset colors
 func (s *Server) handleGetColors(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, i18n.T("gui.method_not_allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -145,7 +146,7 @@ func (s *Server) handleGetColors(w http.ResponseWriter, r *http.Request) {
 // POST /api/exit - Shutdown the server
 func (s *Server) handleExit(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, i18n.T("gui.method_not_allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -156,4 +157,25 @@ func (s *Server) handleExit(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		s.shutdown <- struct{}{}
 	}()
+}
+
+// GET /api/i18n - Get i18n messages for all languages
+func (s *Server) handleGetI18n(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, i18n.T("gui.method_not_allowed"), http.StatusMethodNotAllowed)
+		return
+	}
+
+	response := struct {
+		DefaultLang string                       `json:"defaultLang"`
+		Languages   []string                     `json:"languages"`
+		Messages    map[string]map[string]string `json:"messages"`
+	}{
+		DefaultLang: i18n.GetLang(),
+		Languages:   i18n.GetAvailableLanguages(),
+		Messages:    i18n.GetAllMessages(),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

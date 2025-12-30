@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/otiai10/ghostconfig/internal/config"
+	"github.com/otiai10/ghostconfig/internal/i18n"
 	"github.com/otiai10/ghostconfig/internal/schema"
 )
 
@@ -47,6 +48,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/fonts", s.handleGetFonts)
 	mux.HandleFunc("/api/colors", s.handleGetColors)
 	mux.HandleFunc("/api/exit", s.handleExit)
+	mux.HandleFunc("/api/i18n", s.handleGetI18n)
 
 	// Static files
 	staticFS, err := fs.Sub(staticFiles, "static")
@@ -65,13 +67,13 @@ func (s *Server) Start() error {
 	go func() {
 		time.Sleep(200 * time.Millisecond)
 		if err := OpenBrowser(url); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to open browser: %v\n", err)
-			fmt.Fprintf(os.Stderr, "Please open %s manually\n", url)
+			fmt.Fprintf(os.Stderr, i18n.T("gui.browser_failed")+"\n", err)
+			fmt.Fprintf(os.Stderr, i18n.T("gui.open_manually")+"\n", url)
 		}
 	}()
 
-	fmt.Printf("Starting Ghostty Config GUI at %s\n", url)
-	fmt.Println("Press Ctrl+C to stop")
+	fmt.Printf(i18n.T("gui.starting")+"\n", url)
+	fmt.Println(i18n.T("gui.press_ctrl_c"))
 
 	// Handle graceful shutdown
 	go s.waitForShutdown()
@@ -88,9 +90,9 @@ func (s *Server) waitForShutdown() {
 
 	select {
 	case <-sigChan:
-		fmt.Println("\nShutting down server...")
+		fmt.Println("\n" + i18n.T("gui.shutting_down"))
 	case <-s.shutdown:
-		fmt.Println("\nExit requested, shutting down server...")
+		fmt.Println("\n" + i18n.T("gui.exit_requested"))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

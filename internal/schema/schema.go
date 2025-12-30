@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"os/exec"
 	"strings"
+
+	"github.com/otiai10/ghostconfig/internal/i18n"
 )
 
 // Option represents a single Ghostty configuration option
@@ -21,16 +23,21 @@ type Section struct {
 	Expanded bool
 }
 
-// Semantic categories for Ghostty configuration
+// Semantic categories for Ghostty configuration (internal keys)
 const (
-	CategoryFont       = "Font"
-	CategoryAppearance = "Appearance"
-	CategoryWindow     = "Window"
-	CategoryInput      = "Input"
-	CategoryShell      = "Shell"
-	CategoryPlatform   = "Platform"
-	CategoryAdvanced   = "Advanced"
+	CategoryFont       = "font"
+	CategoryAppearance = "appearance"
+	CategoryWindow     = "window"
+	CategoryInput      = "input"
+	CategoryShell      = "shell"
+	CategoryPlatform   = "platform"
+	CategoryAdvanced   = "advanced"
 )
+
+// CategoryName returns the translated display name for a category
+func CategoryName(key string) string {
+	return i18n.T("category." + key)
+}
 
 // categoryOrder defines the display order of categories
 var categoryOrder = []string{
@@ -134,10 +141,10 @@ func GroupBySection(options []Option) []Section {
 	}
 
 	var sections []Section
-	for _, name := range categoryOrder {
-		if opts, exists := sectionMap[name]; exists {
+	for _, key := range categoryOrder {
+		if opts, exists := sectionMap[key]; exists {
 			sections = append(sections, Section{
-				Name:     name,
+				Name:     CategoryName(key),
 				Options:  opts,
 				Expanded: false,
 			})

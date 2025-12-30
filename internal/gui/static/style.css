@@ -475,3 +475,23 @@ footer {
     color: var(--text-muted);
     padding: 3rem;
 }
+
+/* Language Switcher */
+.lang-switcher select {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+}
+
+.lang-switcher select:hover {
+    border-color: var(--accent);
+}
+
+.lang-switcher select:focus {
+    border-color: var(--accent);
+}

@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/otiai10/ghostconfig/internal/config"
+	"github.com/otiai10/ghostconfig/internal/i18n"
 	"github.com/otiai10/ghostconfig/internal/schema"
 )
 
@@ -110,7 +111,7 @@ var (
 
 func New(options []schema.Option, cfg *config.Config) Model {
 	ti := textinput.New()
-	ti.Placeholder = "Enter value..."
+	ti.Placeholder = i18n.T("tui.placeholder")
 	ti.CharLimit = 256
 	ti.Width = 50
 
@@ -241,7 +242,7 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				case schema.TypeFont:
 					fonts, err := schema.ListFonts()
 					if err != nil {
-						m.message = fmt.Sprintf("Error loading fonts: %v", err)
+						m.message = fmt.Sprintf(i18n.T("msg.loading_fonts"), err)
 						return m, nil
 					}
 					m.fonts = fonts
@@ -291,7 +292,7 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "/":
 		m.mode = modeSearch
 		m.textInput.SetValue(m.searchQuery)
-		m.textInput.Placeholder = "Search..."
+		m.textInput.Placeholder = i18n.T("tui.search_placeholder")
 		m.textInput.Focus()
 		return m, textinput.Blink
 
@@ -320,9 +321,9 @@ func (m Model) updateEdit(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		newValue := m.textInput.Value()
 		m.config.Set(opt.Key, newValue)
 		if err := m.config.Save(); err != nil {
-			m.message = fmt.Sprintf("Error: %v", err)
+			m.message = fmt.Sprintf(i18n.T("msg.error"), err)
 		} else {
-			m.message = fmt.Sprintf("Saved: %s = %s", opt.Key, newValue)
+			m.message = fmt.Sprintf(i18n.T("msg.saved"), opt.Key, newValue)
 		}
 		m.mode = modeList
 		m.textInput.Blur()
@@ -348,7 +349,7 @@ func (m Model) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.offset = 0
 		m.mode = modeList
 		m.textInput.Blur()
-		m.textInput.Placeholder = "Enter value..."
+		m.textInput.Placeholder = i18n.T("tui.placeholder")
 		return m, nil
 	}
 
@@ -394,9 +395,9 @@ func (m Model) updateColorPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		m.config.Set(opt.Key, newValue)
 		if err := m.config.Save(); err != nil {
-			m.message = fmt.Sprintf("Error: %v", err)
+			m.message = fmt.Sprintf(i18n.T("msg.error"), err)
 		} else {
-			m.message = fmt.Sprintf("Saved: %s = %s", opt.Key, newValue)
+			m.message = fmt.Sprintf(i18n.T("msg.saved"), opt.Key, newValue)
 		}
 		m.mode = modeList
 		m.textInput.Blur()
@@ -446,9 +447,9 @@ func (m Model) updateFontPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 			m.config.Set(opt.Key, newValue)
 			if err := m.config.Save(); err != nil {
-				m.message = fmt.Sprintf("Error: %v", err)
+				m.message = fmt.Sprintf(i18n.T("msg.error"), err)
 			} else {
-				m.message = fmt.Sprintf("Saved: %s = %s", opt.Key, newValue)
+				m.message = fmt.Sprintf(i18n.T("msg.saved"), opt.Key, newValue)
 			}
 			m.mode = modeList
 			m.fontFilter = ""
@@ -492,7 +493,7 @@ func (m Model) getFilteredFonts() []string {
 func (m Model) View() string {
 	var b strings.Builder
 
-	b.WriteString(titleStyle.Render("Ghostty Config Editor"))
+	b.WriteString(titleStyle.Render(i18n.T("app.title")))
 	b.WriteString("\n")
 
 	switch m.mode {
@@ -503,11 +504,11 @@ func (m Model) View() string {
 	}
 
 	if m.mode == modeSearch {
-		b.WriteString("Search: ")
+		b.WriteString(i18n.T("tui.search"))
 		b.WriteString(m.textInput.View())
 		b.WriteString("\n\n")
 	} else if m.searchQuery != "" {
-		b.WriteString(fmt.Sprintf("Filter: %s (ESC to clear)\n\n", m.searchQuery))
+		b.WriteString(fmt.Sprintf(i18n.T("tui.filter")+"\n\n", m.searchQuery))
 	} else {
 		b.WriteString("\n")
 	}
@@ -556,7 +557,7 @@ func (m Model) View() string {
 			if isSelected {
 				displayVal := val
 				if currentVal == "" {
-					displayVal = val + " (default)"
+					displayVal = val + " " + i18n.T("tui.default")
 				}
 				line = selectedStyle.Render(fmt.Sprintf("  > %s = %s", opt.Key, displayVal))
 				if colorSwatch != "" {
@@ -566,7 +567,7 @@ func (m Model) View() string {
 				if currentVal != "" {
 					line = fmt.Sprintf("    %s = %s", keyStyle.Render(opt.Key), valueStyle.Render(currentVal))
 				} else {
-					line = fmt.Sprintf("    %s = %s", keyStyle.Render(opt.Key), defaultStyle.Render(val+" (default)"))
+					line = fmt.Sprintf("    %s = %s", keyStyle.Render(opt.Key), defaultStyle.Render(val+" "+i18n.T("tui.default")))
 				}
 				if colorSwatch != "" {
 					line = colorSwatch + line
@@ -594,7 +595,7 @@ func (m Model) View() string {
 	// Edit mode
 	if m.mode == modeEdit {
 		b.WriteString("\n")
-		b.WriteString("New value: ")
+		b.WriteString(i18n.T("tui.new_value"))
 		b.WriteString(m.textInput.View())
 		b.WriteString("\n")
 	}
@@ -606,11 +607,11 @@ func (m Model) View() string {
 	}
 
 	// Help
-	help := "j/k: move | enter/space: toggle/edit | tab: expand all | /: search | q: quit"
+	help := i18n.T("help.main")
 	if m.mode == modeEdit {
-		help = "enter: save | esc: cancel"
+		help = i18n.T("help.edit")
 	} else if m.mode == modeSearch {
-		help = "enter: apply | esc: cancel"
+		help = i18n.T("help.search")
 	}
 	b.WriteString(helpStyle.Render("\n" + help))
 
@@ -623,7 +624,7 @@ func (m Model) viewColorPicker() string {
 	item := m.items[m.cursor]
 	opt := m.sections[item.SectionIndex].Options[item.OptionIndex]
 
-	b.WriteString(titleStyle.Render(fmt.Sprintf("Select Color: %s", opt.Key)))
+	b.WriteString(titleStyle.Render(fmt.Sprintf(i18n.T("tui.select_color"), opt.Key)))
 	b.WriteString("\n\n")
 
 	// Current value preview
@@ -652,18 +653,18 @@ func (m Model) viewColorPicker() string {
 	// Custom color option
 	b.WriteString("\n")
 	if m.customColor {
-		b.WriteString(pickerSelectedStyle.Render("> Custom: "))
+		b.WriteString(pickerSelectedStyle.Render("> " + i18n.T("tui.custom")))
 		b.WriteString(m.textInput.View())
 	} else {
 		if m.colorCursor == len(schema.CommonColors) {
-			b.WriteString(pickerSelectedStyle.Render("> Custom color..."))
+			b.WriteString(pickerSelectedStyle.Render("> " + i18n.T("tui.custom_color")))
 		} else {
-			b.WriteString("  " + pickerItemStyle.Render("Custom color..."))
+			b.WriteString("  " + pickerItemStyle.Render(i18n.T("tui.custom_color")))
 		}
 	}
 	b.WriteString("\n")
 
-	b.WriteString(helpStyle.Render("\nj/k: move | enter: select | esc: cancel"))
+	b.WriteString(helpStyle.Render("\n" + i18n.T("help.color")))
 
 	return b.String()
 }
@@ -674,7 +675,7 @@ func (m Model) viewFontPicker() string {
 	item := m.items[m.cursor]
 	opt := m.sections[item.SectionIndex].Options[item.OptionIndex]
 
-	b.WriteString(titleStyle.Render(fmt.Sprintf("Select Font: %s", opt.Key)))
+	b.WriteString(titleStyle.Render(fmt.Sprintf(i18n.T("tui.select_font"), opt.Key)))
 	b.WriteString("\n")
 
 	// Current value
@@ -709,10 +710,10 @@ func (m Model) viewFontPicker() string {
 	}
 
 	if len(filteredFonts) == 0 {
-		b.WriteString(defaultStyle.Render("  No fonts match filter\n"))
+		b.WriteString(defaultStyle.Render("  " + i18n.T("tui.no_fonts") + "\n"))
 	}
 
-	b.WriteString(helpStyle.Render(fmt.Sprintf("\nj/k: move | enter: select | type to filter | esc: cancel (%d fonts)", len(filteredFonts))))
+	b.WriteString(helpStyle.Render(fmt.Sprintf("\n"+i18n.T("help.font"), len(filteredFonts))))
 
 	return b.String()
 }
