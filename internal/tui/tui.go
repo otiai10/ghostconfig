@@ -96,6 +96,10 @@ var (
 	countStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240"))
 
+	pathStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("245")).
+			Italic(true)
+
 	colorSwatchStyle = lipgloss.NewStyle().
 				Width(4).
 				Height(1)
@@ -494,6 +498,8 @@ func (m Model) View() string {
 	var b strings.Builder
 
 	b.WriteString(titleStyle.Render(i18n.T("app.title")))
+	b.WriteString("\n")
+	b.WriteString(pathStyle.Render(m.config.Path))
 	b.WriteString("\n")
 
 	switch m.mode {

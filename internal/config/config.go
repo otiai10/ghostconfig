@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -15,13 +16,38 @@ type Config struct {
 }
 
 // DefaultPath returns the default config file path
+// Priority: OS-specific path (if exists) > XDG config > ~/.config/ghostty/config
 func DefaultPath() string {
-	// Check XDG config first
+	// 1. Check OS-specific primary path (if file exists)
+	if primaryPath := getPrimaryConfigPath(); primaryPath != "" {
+		if _, err := os.Stat(primaryPath); err == nil {
+			return primaryPath
+		}
+	}
+
+	// 2. Fallback to XDG config
 	if xdgConfig := os.Getenv("XDG_CONFIG_HOME"); xdgConfig != "" {
 		return filepath.Join(xdgConfig, "ghostty", "config")
 	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".config", "ghostty", "config")
+}
+
+// getPrimaryConfigPath returns the OS-specific config path
+// macOS: ~/Library/Application Support/com.mitchellh.ghostty/config
+// Windows: %APPDATA%\ghostty\config
+// Linux: (none, uses XDG)
+func getPrimaryConfigPath() string {
+	home, _ := os.UserHomeDir()
+	switch runtime.GOOS {
+	case "darwin":
+		return filepath.Join(home, "Library", "Application Support", "com.mitchellh.ghostty", "config")
+	case "windows":
+		if appData := os.Getenv("APPDATA"); appData != "" {
+			return filepath.Join(appData, "ghostty", "config")
+		}
+	}
+	return ""
 }
 
 // Load reads the config file and returns the configuration

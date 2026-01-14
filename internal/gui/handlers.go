@@ -70,12 +70,21 @@ func (s *Server) handleGetOptions(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// ConfigResponse represents the config API response
+type ConfigResponse struct {
+	Path   string            `json:"path"`
+	Values map[string]string `json:"values"`
+}
+
 // GET/PUT /api/config - Get or update config values
 func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(s.config.Values)
+		json.NewEncoder(w).Encode(ConfigResponse{
+			Path:   s.config.Path,
+			Values: s.config.Values,
+		})
 
 	case http.MethodPut:
 		var req struct {

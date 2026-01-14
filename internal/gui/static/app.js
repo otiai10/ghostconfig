@@ -24,7 +24,8 @@ const state = {
     searchQuery: '',
     colors: [],
     fonts: [],
-    currentOption: null
+    currentOption: null,
+    configPath: ''
 };
 
 // Initialize the application
@@ -33,10 +34,12 @@ async function init() {
         await Promise.all([
             loadI18n(),
             loadOptions(),
-            loadColors()
+            loadColors(),
+            loadConfigPath()
         ]);
         renderLangSwitcher();
         applyI18n();
+        renderConfigPath();
         renderSections();
         renderOptions();
         setupEventListeners();
@@ -116,6 +119,20 @@ async function loadColors() {
     const response = await fetch('/api/colors');
     if (!response.ok) throw new Error(t('gui.error.load_colors'));
     state.colors = await response.json();
+}
+
+async function loadConfigPath() {
+    const response = await fetch('/api/config');
+    if (!response.ok) return;
+    const data = await response.json();
+    state.configPath = data.path || '';
+}
+
+function renderConfigPath() {
+    const pathEl = document.getElementById('config-path');
+    if (pathEl && state.configPath) {
+        pathEl.textContent = state.configPath;
+    }
 }
 
 async function loadFonts() {
